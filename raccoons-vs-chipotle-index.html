@@ -1,0 +1,128 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Raccoons vs Chipotle</title>
+  <style>
+    body {
+      background: #f4e1d2;
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+      background: url('https://i.imgur.com/u9P3hZ3.png') no-repeat center/cover; /* Chipotle background */
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.7);
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Raccoons: 1 | Burritos: 0</div>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let raccoons = [{x: 100, y: 100}];
+    let burritos = [];
+    let employees = [];
+    let score = 0;
+
+    function spawnBurrito() {
+      burritos.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height
+      });
+    }
+    function spawnEmployee() {
+      employees.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        dirX: Math.random() < 0.5 ? -1 : 1,
+        dirY: Math.random() < 0.5 ? -1 : 1
+      });
+    }
+
+    setInterval(spawnBurrito, 3000);
+    setInterval(spawnEmployee, 5000);
+
+    let keys = {};
+    document.addEventListener('keydown', e => keys[e.key] = true);
+    document.addEventListener('keyup', e => keys[e.key] = false);
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw burritos
+      ctx.fillStyle = 'orange';
+      burritos.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw employees
+      ctx.fillStyle = 'red';
+      employees.forEach(emp => {
+        ctx.fillRect(emp.x, emp.y, 30, 30);
+        emp.x += emp.dirX * 2;
+        emp.y += emp.dirY * 2;
+
+        // Bounce off walls
+        if (emp.x < 0 || emp.x > canvas.width - 30) emp.dirX *= -1;
+        if (emp.y < 0 || emp.y > canvas.height - 30) emp.dirY *= -1;
+      });
+
+      // Move raccoon
+      let raccoon = raccoons[0];
+      if (keys['ArrowUp'] || keys['w']) raccoon.y -= 5;
+      if (keys['ArrowDown'] || keys['s']) raccoon.y += 5;
+      if (keys['ArrowLeft'] || keys['a']) raccoon.x -= 5;
+      if (keys['ArrowRight'] || keys['d']) raccoon.x += 5;
+
+      // Draw raccoons
+      ctx.fillStyle = 'gray';
+      raccoons.forEach((r, i) => {
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 15, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Check collisions with burritos
+      burritos = burritos.filter(b => {
+        let dist = Math.hypot(b.x - raccoon.x, b.y - raccoon.y);
+        if (dist < 20) {
+          score++;
+          raccoons.push({x: raccoon.x, y: raccoon.y});
+          document.getElementById('info').innerText = `Raccoons: ${raccoons.length} | Burritos: ${score}`;
+          return false;
+        }
+        return true;
+      });
+
+      // Check collisions with employees
+      employees.forEach(emp => {
+        let dist = Math.hypot(emp.x - raccoon.x, emp.y - raccoon.y);
+        if (dist < 25 && raccoons.length > 1) {
+          raccoons.pop();
+          document.getElementById('info').innerText = `Raccoons: ${raccoons.length} | Burritos: ${score}`;
+        }
+      });
+
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>
